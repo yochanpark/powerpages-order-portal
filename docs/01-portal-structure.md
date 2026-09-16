@@ -3,12 +3,12 @@
 ## 구성요소
 
 Power Pages 사이트는 Dataverse 테이블에 저장되는 구성요소의 묶음이다.
-이 포털은 **267개**의 구성요소 XML로 이루어져 있다.
-웹페이지·페이지 템플릿·웹파일·사이트 설정·웹 링크 집합이 모두 여기 들어간다.
+이 사이트는 **267개**의 구성요소로 이루어져 있고, 타입은 **20종**에 걸쳐 있다.
+가장 많은 타입이 74개, 그다음이 52개·28개 순이다.
 
-솔루션으로 내보내면 `powerpagecomponents/<GUID>/` 아래에
-구성요소 XML과, 웹파일인 경우 실제 파일(`filecontent/`)이 함께 나온다.
-이 구조 덕분에 **사이트 전체를 코드처럼 환경 간에 옮길 수 있다.**
+솔루션으로 내보내면 `powerpagecomponents/<GUID>/` 아래에 구성요소 XML이,
+웹파일인 경우 실제 파일이 `filecontent/`에 함께 나온다.
+사이트 전체를 솔루션에 담아 환경 간에 옮길 수 있다.
 
 ## 테마
 
@@ -16,27 +16,60 @@ Power Pages 사이트는 Dataverse 테이블에 저장되는 구성요소의 묶
 |---|---|
 | `bootstrap.min.css` | 기본 그리드·컴포넌트 |
 | `portalbasictheme.css` | Power Pages 기본 테마 |
-| `theme.css` | 이 포털 전용 재정의 |
+| `theme.css` | 이 사이트 전용 재정의 |
 
-로고(상단 메뉴용·64px 파비콘용)와 로그인 화면 배경 이미지 10여 종을 웹파일로 올려
-테마에서 참조했다.
+로고(상단 메뉴용·64px)와 로그인/인쇄 화면용 이미지 20여 종을 웹파일로 올려 참조했다.
+`PWAManifest.json`과 `robots.txt`도 웹파일로 들어가 있다.
 
-## 로그인 페이지 커스터마이징
+## 로그인 화면 커스터마이징
 
-Power Pages의 기본 인증 화면은 `Account/SignIn` 경로의 페이지 사본을 만들어 바꾼다.
-기본 페이지를 직접 고치지 않고 **사본(page copy)을 두는 방식**이라,
-플랫폼이 업데이트되어도 커스터마이징이 덮어써지지 않는다.
+`Account/SignIn` 화면을 CSS 재정의로 바꿨다. 실제로 하는 일은 셋이다.
 
-로그인 안내 메일도 별도 템플릿으로 만들어 발송한다.
+**1. 기본 UI 요소를 숨긴다**
 
-## PWA
+```css
+.page-heading,.nav-tabs,.checkbox,h2,.required,
+.field-validation-error,
+form a[href*="ForgotPassword"]{display:none!important}
+```
 
-`PWAManifest.json`을 포함해 모바일에서 홈 화면에 추가하면
-브라우저 주소창 없이 앱처럼 열린다.
+**2. 외부 인증 수단을 감춘다**
 
-## 마스킹 규칙
+```css
+button[value="MicrosoftEntraID"],button[name*="Microsoft"],
+a[href*="MicrosoftEntra"],a[href*="External"]{display:none!important}
+```
 
-솔루션에 **데이터 마스킹 규칙 6종**이 들어 있다.
-외부 사용자가 보는 화면에서 개인정보 성격의 열을 가리는 용도다.
-포털은 비인증 사용자도 접근할 수 있으므로, 테이블 권한만으로 막지 않고
-표시 단계에서 한 번 더 거른다.
+로컬 계정 로그인만 쓰는 사이트라 Entra ID·외부 공급자 버튼을 가렸다.
+
+> 이건 **화면에서 감춘 것이지 비활성화한 것이 아니다.**
+> 인증 수단을 실제로 막으려면 사이트 설정에서 해당 공급자를 꺼야 한다.
+> CSS는 보이지 않게 할 뿐이고 접근 통제가 아니다.
+
+**3. 카드형 레이아웃으로 다시 짠다**
+
+```css
+.signin-card{max-width:520px;margin:0 auto;background:#fff;
+  border-radius:14px;padding:50px 45px;
+  box-shadow:0 4px 20px rgba(0,0,0,.1)}
+```
+
+Bootstrap의 `.row` 음수 마진이 카드 밖으로 삐져나와,
+`margin-left/right:0!important`와 `box-sizing:border-box`를 여러 선택자에 걸어 눌렀다.
+라벨도 테마에 따라 숨겨져서 `display:block` + `visibility:visible` + `opacity:1`로 되살렸다.
+
+기본 테마 위에 `!important`를 겹겹이 쌓는 방식이라 깔끔하지는 않다.
+Power Pages는 기본 인증 화면의 마크업을 바꿀 수 없어 CSS로 덮는 것 말고 선택지가 없었다.
+
+## 솔루션에 함께 들어온 것
+
+`maskingrules/` 아래에 마스킹 규칙 6종이 들어 있다.
+
+```
+Email · Email_HideName · SocialSecurityNumber
+SocialSecurityNumber_ShowLastFourDigits · Date_Hyphen · Date_Slash
+```
+
+**이건 직접 만든 것이 아니라 Power Pages가 기본 제공하는 표준 규칙**이고,
+솔루션을 내보낼 때 함께 따라온 것이다. 기록해 두는 이유는
+솔루션 내용물을 볼 때 어디까지가 플랫폼 기본값인지 구분해야 하기 때문이다.
